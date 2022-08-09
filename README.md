@@ -4,7 +4,7 @@ Week 4
 
 Task: connecting login with backend
 
-Group: Ning Liu and David
+Group: Ning Liu and David KWOK
 
 # redback_mobile_app
 
