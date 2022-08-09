@@ -1,10 +1,20 @@
 // ignore_for_file: avoid_print
 
 import 'dart:convert';
-
+import 'dart:js_util';
 import 'package:flutter/material.dart';
 import 'package:redback_mobile_app/screens/signUp.dart';
+import 'package:redback_mobile_app/screens/homePage.dart';
 import 'package:http/http.dart' as http;
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
+// Obtain shared preferences.
+late SharedPreferences prefs;
+getSharedPreferences() async {
+  print('Getting sharedPreferences');
+  prefs = await SharedPreferences.getInstance();
+}
 
 class Login extends StatefulWidget {
   const Login({Key? key}) : super(key: key);
@@ -25,14 +35,40 @@ class _LoginState extends State<Login> {
   var client = http.Client();
 
   Future<void> getData() async {
+    getSharedPreferences();
     try {
-      // use the below uri instead of localhost:8080 when using android emulator
-      var response = await client.get(Uri.parse('http://10.0.2.2:8080/user'));
+      // use 127.0.0.1 when testing with a browser and 10.0.2.2 when testing with the emulator
+      var response = await client.post(Uri.parse('http://127.0.0.1:8080/login'),
+          headers: {"Content-Type": "application/json; charset=utf-8"},
+          body: jsonEncode({
+            "username": userNameEditingController.text,
+            "password": passwordEditingController.text,
+          }));
+      //If the information is correct, you will be redirected to the home page
+      //If there is an error message, there will be an alert box to indicate
+      // that the account number or password is incorrect
       if (response.statusCode == 200) {
-        print(
-            "successfully retrieved user but need to handle the data to match the given username and password");
+        print('Response body: ${response.body}');
+        var values = json.decode(response.body);
+        //save accessToken and refreshToken in sharedPreferences memory
+        prefs.setString("accessToken", values["accessToken"]);
+        prefs.setString("refreshToken", values["refreshToken"]);
+        Navigator.push(
+            context,
+            MaterialPageRoute(
+                builder: (context) => MyHomePage(
+                      title: '',
+                    )));
+      } else {
+        //The style also needs to be set
+        Fluttertoast.showToast(
+          msg: response.body,
+          gravity: ToastGravity.BOTTOM,
+          backgroundColor: Colors.red,
+          textColor: Colors.white,
+        );
       }
-      //print(response.body);
+      client.close();
     } catch (e) {
       print(e);
     }
@@ -63,7 +99,7 @@ class _LoginState extends State<Login> {
         controller: passwordEditingController,
         obscureText: true,
         textInputAction: TextInputAction.next,
-        style: const TextStyle(color: Color(0xFFe87461)),
+        style: const TextStyle(color: Color.fromARGB(255, 0, 0, 0)),
         decoration: InputDecoration(
           fillColor: const Color(0xFFe87461),
           filled: true,
